@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="page-header">
+    <h2>Command Center</h2>
+    <p class="sub">A quiet place to see what needs attention and what can wait.</p>
+</section>
+
+<div class="hero-grid">
+    <section class="panel panel-soft action-panel">
+        <h3>Next Useful Move</h3>
+        <p>{{ next_action }}</p>
+    </section>
+
+    <section class="panel">
+        <h3>Quick Add Task</h3>
+        <form method="POST" action="{{ url_for('add_task') }}" class="form-panel">
+            <label for="task-title">Task</label>
+            <input id="task-title" type="text" name="title" placeholder="What needs to get done?" required>
+
+            <label for="task-priority">Priority</label>
+            <select id="task-priority" name="priority" required>
+                <option value="High">High</option>
+                <option value="Medium" selected>Medium</option>
+                <option value="Low">Low</option>
+            </select>
+
+            <button type="submit">Add task</button>
+        </form>
+    </section>
+</div>
+
+<section class="panel">
+    <div class="section-heading-row">
+        <div>
+            <h3>Active Tasks</h3>
+            <p class="muted-text small-text">Moved tasks stay recoverable in Trash.</p>
+        </div>
+    </div>
+
+    {% if tasks %}
+        <div class="task-list">
+            {% for task in tasks %}
+                <div class="task-card">
+                    <form method="POST" action="{{ url_for('update_task', task_id=task.id) }}" class="task-edit-form">
+                        <label>Task</label>
+                        <input type="text" name="title" value="{{ task.title }}" required>
+
+                        <label>Priority</label>
+                        <select name="priority" required>
+                            <option value="High" {% if task.priority == 'High' %}selected{% endif %}>High</option>
+                            <option value="Medium" {% if task.priority == 'Medium' %}selected{% endif %}>Medium</option>
+                            <option value="Low" {% if task.priority == 'Low' %}selected{% endif %}>Low</option>
+                        </select>
+
+                        <label>Status</label>
+                        <select name="status" required>
+                            <option value="Not Started" {% if task.status == 'Not Started' %}selected{% endif %}>Not Started</option>
+                            <option value="In Progress" {% if task.status == 'In Progress' %}selected{% endif %}>In Progress</option>
+                            <option value="Done" {% if task.status == 'Done' %}selected{% endif %}>Done</option>
+                        </select>
+
+                        <div class="task-actions">
+                            <button type="submit">Save</button>
+                        </div>
+                    </form>
+
+                    <form method="POST" action="{{ url_for('delete_task', task_id=task.id) }}" onsubmit="return confirm('Move this task to Trash?');">
+                        <button type="submit" class="danger-btn">Move to Trash</button>
+                    </form>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <h4>No active tasks yet.</h4>
+            <p class="muted-text">Add one task above so the dashboard can guide your next move.</p>
+        </div>
+    {% endif %}
+</section>
+{% endblock %}

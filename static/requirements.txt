@@ -1,0 +1,4 @@
+Flask
+ollama
+pdfplumber
+python-docx

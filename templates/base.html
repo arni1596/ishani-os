@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ishani OS</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="app-shell">
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="brand-mark">IO</div>
+                <div class="brand-text">
+                    <h1>Ishani OS</h1>
+                    <p>private dashboard</p>
+                </div>
+            </div>
+
+            <button id="theme-toggle" class="theme-toggle" type="button">Theme</button>
+
+            <nav class="nav-links">
+                <a class="{{ 'active-nav' if request.endpoint == 'dashboard' else '' }}" href="{{ url_for('dashboard') }}">Command Center</a>
+                <a class="{{ 'active-nav' if request.endpoint == 'memory' else '' }}" href="{{ url_for('memory') }}">Memory Vault</a>
+                <a class="{{ 'active-nav' if request.endpoint == 'reset' else '' }}" href="{{ url_for('reset') }}">Reset</a>
+                <a class="{{ 'active-nav' if request.endpoint == 'pattern_check' else '' }}" href="{{ url_for('pattern_check') }}">Pattern Check</a>
+                <a class="{{ 'active-nav' if request.endpoint == 'decision' else '' }}" href="{{ url_for('decision') }}">Decision Guide</a>
+                <a class="{{ 'active-nav' if request.endpoint == 'review' else '' }}" href="{{ url_for('review') }}">Weekly Review</a>
+                <a class="{{ 'active-nav' if request.endpoint in ['ai_chat', 'workspace'] else '' }}" href="{{ url_for('workspace') }}">Workspace</a>
+                <a class="{{ 'active-nav' if request.endpoint == 'trash' else '' }}" href="{{ url_for('trash') }}">Trash</a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="sidebar-card">
+                    <strong>System principle</strong>
+                    <p>Capture clearly. Decide intentionally. Keep only what is useful.</p>
+                </div>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <div class="content-frame">
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

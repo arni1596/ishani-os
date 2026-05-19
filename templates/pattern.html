@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="page-header">
+    <h2>Pattern Check</h2>
+    <p class="sub">Slow the thought down. Name what is real, then name what your mind is filling in.</p>
+</section>
+
+<div class="hero-grid">
+    <section class="panel">
+        <h3>Check a Pattern</h3>
+        <form method="POST" action="{{ url_for('pattern_check') }}" class="form-panel">
+            <label for="entry">What actually happened?</label>
+            <textarea id="entry" name="entry" placeholder="Write the situation, the thought, and what your mind may be adding." required>{{ entry }}</textarea>
+            <button type="submit">Save this insight</button>
+        </form>
+    </section>
+
+    {% if result %}
+    <section class="panel panel-soft">
+        <h3>What is repeating?</h3>
+        <ul>
+            <li><strong>Emotion:</strong> {{ result.emotion }}</li>
+            <li><strong>Pattern:</strong> {{ result.pattern }}</li>
+            <li><strong>Need:</strong> {{ result.need }}</li>
+            <li><strong>What is your mind adding?</strong> {{ result.reality_check }}</li>
+            <li><strong>What needs one small next step?</strong> {{ result.next_step }}</li>
+        </ul>
+    </section>
+    {% else %}
+    <section class="panel panel-soft">
+        <h3>Grounding prompt</h3>
+        <p>What pattern is repeating? What is real? What needs one small next step?</p>
+    </section>
+    {% endif %}
+</div>
+
+<section class="panel">
+    <h3>Recent Pattern Checks</h3>
+    <p class="muted-text small-text">Move anything out of active view when it no longer needs attention.</p>
+
+    {% if recent_reflections %}
+        <div class="task-list" style="margin-top:14px;">
+            {% for reflection in recent_reflections %}
+                <article class="task-card">
+                    <p><strong>Entry:</strong> {{ reflection.entry }}</p>
+                    <p><strong>Pattern:</strong> {{ reflection.pattern }}</p>
+                    <p><strong>Need:</strong> {{ reflection.need }}</p>
+                    <p><strong>Next Step:</strong> {{ reflection.next_step }}</p>
+                    <p class="muted-text small-text">Logged: {{ reflection.created_at }}</p>
+
+                    <form method="POST" action="{{ url_for('delete_reflection', reflection_id=reflection.id) }}" onsubmit="return confirm('Move this pattern check to Trash?');">
+                        <button type="submit" class="danger-btn">Move to Trash</button>
+                    </form>
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <h4>No pattern checks yet.</h4>
+            <p class="muted-text">Run your first check above when you want a grounded read on a thought.</p>
+        </div>
+    {% endif %}
+</section>
+{% endblock %}

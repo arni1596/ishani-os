@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="page-header">
+    <h2>Memory Vault</h2>
+    <p class="sub">Keep the context worth returning to. Let the rest leave the active surface.</p>
+</section>
+
+<div class="hero-grid">
+    <section class="panel">
+        <h3>Add Memory</h3>
+        <form method="POST" action="{{ url_for('add_memory') }}" class="form-panel">
+            <label for="memory-title">Title</label>
+            <input id="memory-title" type="text" name="title" placeholder="Internship questions" required>
+
+            <label for="memory-content">Content</label>
+            <textarea id="memory-content" name="content" placeholder="Paste or write what you want saved..." required></textarea>
+
+            <button type="submit">Save this insight</button>
+        </form>
+    </section>
+
+    <section class="panel panel-soft">
+        <h3>Upload Text Memory</h3>
+        <p class="muted-text">Use this for notes, transcripts, drafts, or reference material you want kept locally.</p>
+
+        <form method="POST" action="{{ url_for('upload_memory') }}" enctype="multipart/form-data" class="form-panel">
+            <label for="memory-file">Upload .txt file</label>
+            <input id="memory-file" type="file" name="file" accept=".txt" required>
+            <button type="submit">Upload Memory</button>
+        </form>
+    </section>
+</div>
+
+<section class="panel">
+    <div class="section-heading-row">
+        <div>
+            <h3>Saved Memories</h3>
+            <p class="muted-text small-text">Rename memories as your understanding changes. Moved memories stay recoverable in Trash.</p>
+        </div>
+    </div>
+
+    {% if memories %}
+        <div class="task-list">
+            {% for memory in memories %}
+                <article class="task-card memory-card">
+                    <div>
+                        <h4>{{ memory.title }}</h4>
+                        <p class="muted-text small-text">Saved: {{ memory.created_at }}</p>
+                    </div>
+
+                    <p>{{ memory.content[:700] }}{% if memory.content|length > 700 %}...{% endif %}</p>
+
+                    <div class="task-actions">
+                        <button type="button" class="rename-memory-btn" data-memory-id="{{ memory.id }}" data-memory-title="{{ memory.title|e }}">Rename</button>
+
+                        <form method="POST" action="{{ url_for('delete_memory', memory_id=memory.id) }}" onsubmit="return confirm('Move this memory to Trash?');">
+                            <button type="submit" class="danger-btn">Move to Trash</button>
+                        </form>
+                    </div>
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <h4>No saved memories yet.</h4>
+            <p class="muted-text">Add one above when something is worth keeping for future context.</p>
+        </div>
+    {% endif %}
+</section>
+
+{% endblock %}

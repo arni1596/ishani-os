@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="page-header">
+    <h2>Reset Mode</h2>
+    <p class="sub">Slow down, return to what is real, and choose the next stabilizing step.</p>
+</section>
+
+<div class="stack">
+    {% if reflections %}
+        {% for item in reflections %}
+        <div class="panel">
+            <h3>{{ item["emotion"]|title }}</h3>
+            <p><strong>Pattern:</strong> {{ item["pattern"] }}</p>
+            <p><strong>Need:</strong> {{ item["need"] }}</p>
+            <p><strong>Reality check:</strong> {{ item["reality_check"] }}</p>
+            <p><strong>Next step:</strong> {{ item["next_step"] }}</p>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="panel">
+            <p class="muted-text">No reset entries yet. Use Pattern Check to start logging them.</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="page-header">
+    <h2>Decision Guide</h2>
+    <p class="sub">Choose the next step that protects your stability and respects your real priority.</p>
+</section>
+
+<div class="hero-grid">
+    <section class="panel">
+        <h3>Work Through a Decision</h3>
+        <form method="POST" action="{{ url_for('decision') }}" class="form-panel">
+            <label for="user-input">What choice supports your real priority right now?</label>
+            <textarea id="user-input" name="user_input" placeholder="Name the decision, the pressure around it, and what you are protecting." required>{{ user_input }}</textarea>
+            <button type="submit">Save this decision</button>
+        </form>
+    </section>
+
+    {% if result %}
+    <section class="panel panel-soft">
+        <h3>Decision Read</h3>
+        <p><strong>Priority signal:</strong> {{ result.priority }}</p>
+        <p>{{ result.recommendation }}</p>
+
+        {% if result.questions %}
+            <h4 style="margin-top:16px;">Questions to answer before deciding</h4>
+            <ul>
+                {% for question in result.questions %}
+                    <li>{{ question }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    </section>
+    {% else %}
+    <section class="panel panel-soft">
+        <h3>Decision rule</h3>
+        <p>What are you protecting: stability, growth, balance, or timing?</p>
+    </section>
+    {% endif %}
+</div>
+
+<section class="panel">
+    <h3>Decision History</h3>
+    <p class="muted-text small-text">Past decisions stay visible until you move them out of active view.</p>
+
+    {% if decision_history %}
+        <div class="task-list" style="margin-top:14px;">
+            {% for decision in decision_history %}
+                <article class="task-card">
+                    <h4>{{ decision.user_input }}</h4>
+                    <p><strong>Priority:</strong> {{ decision.priority }}</p>
+                    <p>{{ decision.recommendation }}</p>
+                    {% if decision.created_at is defined %}
+                        <p class="muted-text small-text">Saved: {{ decision.created_at }}</p>
+                    {% endif %}
+
+                    <form method="POST" action="{{ url_for('delete_decision', decision_id=decision.id) }}" onsubmit="return confirm('Move this decision to Trash?');">
+                        <button type="submit" class="danger-btn">Move to Trash</button>
+                    </form>
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <h4>No decision history yet.</h4>
+            <p class="muted-text">Run the guide once and your decision will show here.</p>
+        </div>
+    {% endif %}
+</section>
+{% endblock %}

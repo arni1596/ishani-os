@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="page-header">
+    <h2>Review the week</h2>
+    <p class="sub">What needs your attention this week? What helped you stay steady?</p>
+</section>
+
+<section class="panel panel-soft">
+    <div class="section-heading-row">
+        <div>
+            <h3>This Week's Review</h3>
+            <p class="muted-text">Save a snapshot when the review feels useful enough to keep.</p>
+        </div>
+        <form method="POST" action="{{ url_for('save_weekly_review') }}">
+            <button type="submit">Save this weekly review</button>
+        </form>
+    </div>
+</section>
+
+<div class="review-grid">
+    <section class="panel">
+        <h3>Wins</h3>
+        {% if review.wins %}
+            <ul>
+                {% for win in review.wins %}
+                    <li>{{ win }}</li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="muted-text">No wins generated yet.</p>
+        {% endif %}
+    </section>
+
+    <section class="panel">
+        <h3>Lessons</h3>
+        {% if review.lessons %}
+            <ul>
+                {% for lesson in review.lessons %}
+                    <li>{{ lesson }}</li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="muted-text">No lessons generated yet.</p>
+        {% endif %}
+    </section>
+</div>
+
+<section class="panel">
+    <h3>Next Week</h3>
+    {% if review.next_week %}
+        <ul>
+            {% for item in review.next_week %}
+                <li>{{ item }}</li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="muted-text">No next steps generated yet.</p>
+    {% endif %}
+</section>
+
+<section class="panel">
+    <h3>Saved Weekly Reviews</h3>
+    <p class="muted-text small-text">Keep the useful snapshots. Move the rest out of active view so your review history stays meaningful.</p>
+
+    {% if review_history %}
+        <div class="task-list" style="margin-top:14px;">
+            {% for saved in review_history %}
+                <article class="task-card">
+                    <p><strong>Saved:</strong> {{ saved.created_at }}</p>
+
+                    <h4>Wins</h4>
+                    <ul>
+                        {% for win in saved.wins %}
+                            <li>{{ win }}</li>
+                        {% endfor %}
+                    </ul>
+
+                    <h4>Lessons</h4>
+                    <ul>
+                        {% for lesson in saved.lessons %}
+                            <li>{{ lesson }}</li>
+                        {% endfor %}
+                    </ul>
+
+                    <h4>Next Week</h4>
+                    <ul>
+                        {% for item in saved.next_week %}
+                            <li>{{ item }}</li>
+                        {% endfor %}
+                    </ul>
+
+                    <form method="POST" action="{{ url_for('delete_weekly_review', review_id=saved.id) }}" onsubmit="return confirm('Move this weekly review to Trash?');">
+                        <button type="submit" class="danger-btn">Move to Trash</button>
+                    </form>
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <h4>No saved weekly reviews yet.</h4>
+            <p class="muted-text">Save one when you want to track progress over time.</p>
+        </div>
+    {% endif %}
+</section>
+{% endblock %}

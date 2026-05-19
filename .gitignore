@@ -1,0 +1,29 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Environment and local config
+.env
+instance/
+
+# Local databases and private data
+database.db
+*.db
+*.sqlite
+*.sqlite3
+uploads/
+
+# Personal screenshots or private local files
+assets/screenshots/private/
+assets/screenshots/personal/
+*personal*
+*private*
+
+# Editor and OS files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

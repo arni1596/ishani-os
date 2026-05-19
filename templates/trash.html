@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="page-header">
+    <h2>Trash</h2>
+    <p class="sub">Restore what still matters. Keep removed items out of active views.</p>
+</section>
+
+<section class="panel panel-soft">
+    <h3>Safe deletion system</h3>
+    <p>Items moved from Command Center, Memory Vault, Pattern Check, Decision Guide, Weekly Review, and Workspace are hidden from active pages but can be restored here.</p>
+</section>
+
+<section class="panel">
+    <h3>Deleted Items</h3>
+
+    {% if deleted %}
+        {% for group in deleted %}
+            <div class="trash-group">
+                <h4>{{ group["label"] }}</h4>
+
+                {% if group["items"] %}
+                    <div class="task-list" style="margin-top:12px;">
+                        {% for item in group["items"] %}
+                            <article class="task-card">
+                                <strong>
+                                    {% if item.title is defined and item.title %}
+                                        {{ item.title }}
+                                    {% elif item.user_input is defined and item.user_input %}
+                                        {{ item.user_input }}
+                                    {% elif item.entry is defined and item.entry %}
+                                        {{ item.entry[:140] }}{% if item.entry|length > 140 %}...{% endif %}
+                                    {% elif item.content is defined and item.content %}
+                                        {{ item.content[:140] }}{% if item.content|length > 140 %}...{% endif %}
+                                    {% elif item.wins is defined and item.wins %}
+                                        Weekly review from {{ item.created_at }}
+                                    {% else %}
+                                        Item #{{ item.id }}
+                                    {% endif %}
+                                </strong>
+
+                                <p class="muted-text small-text">Deleted: {{ item.deleted_at }}</p>
+
+                                <form method="POST" action="{{ url_for('restore_item', table=group["table"], item_id=item.id) }}">
+                                    <button type="submit" class="restore-btn">Restore</button>
+                                </form>
+                            </article>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="muted-text">Nothing deleted here.</p>
+                {% endif %}
+            </div>
+        {% endfor %}
+    {% else %}
+        <div class="empty-state">
+            <h4>Trash is empty.</h4>
+            <p class="muted-text">Deleted items will appear here when you remove them from active pages.</p>
+        </div>
+    {% endif %}
+</section>
+{% endblock %}

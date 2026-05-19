@@ -1,0 +1,1155 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    .chat-layout {
+        display: grid;
+        grid-template-columns: 320px 1fr;
+        gap: 20px;
+        align-items: start;
+    }
+
+    .left-panel,
+    .chat-shell {
+        background: var(--panel, rgba(255, 255, 255, 0.92));
+        border: 1px solid var(--border, rgba(15, 23, 42, 0.08));
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: var(--shadow-md, 0 14px 36px rgba(15, 23, 42, 0.08));
+        backdrop-filter: blur(12px);
+    }
+
+    .left-panel {
+        position: sticky;
+        top: 20px;
+        max-height: calc(100vh - 40px);
+        overflow-y: auto;
+    }
+
+    .panel-title {
+        margin: 0 0 14px 0;
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: var(--heading, #10264d);
+    }
+
+    .tool-stack {
+        display: grid;
+        gap: 12px;
+        margin-bottom: 18px;
+    }
+
+    .tool-stack button,
+    .folder-controls button,
+    .memory-result-item button,
+    .thread-action-btn,
+    .composer button {
+        border: none;
+        border-radius: 8px;
+        padding: 12px 14px;
+        cursor: pointer;
+        font-weight: 600;
+    }
+
+    .tool-stack button {
+        width: 100%;
+    }
+
+    .tool-stack button.active-tool {
+        outline: 2px solid rgba(37, 99, 235, 0.35);
+        transform: translateY(-1px);
+    }
+
+    .fast-mode-box,
+    .memory-search,
+    .folder-section {
+        margin-top: 18px;
+        padding: 14px;
+        border-radius: 8px;
+        background: var(--panel-muted, #f8fbff);
+        border: 1px solid var(--border, rgba(15, 23, 42, 0.08));
+    }
+
+    .muted-text {
+        opacity: 0.75;
+    }
+
+    .small-text {
+        font-size: 0.92rem;
+    }
+
+    .folder-controls {
+        display: grid;
+        gap: 10px;
+        margin-bottom: 12px;
+    }
+
+    .tree-block {
+        margin-top: 8px;
+    }
+
+    .folder-node,
+    .thread-node,
+    .unfiled-header {
+        border-radius: 8px;
+        margin-top: 8px;
+    }
+
+    .folder-row,
+    .thread-row {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 10px 12px;
+        background: rgba(255, 255, 255, 0.45);
+        border: 1px solid var(--border, rgba(15, 23, 42, 0.08));
+        border-radius: 8px;
+    }
+
+    body.dark-mode .folder-row,
+    body.dark-mode .thread-row {
+        background: rgba(255, 255, 255, 0.03);
+    }
+
+    .folder-name,
+    .thread-title {
+        cursor: pointer;
+        flex: 1;
+        min-width: 0;
+        word-break: break-word;
+    }
+
+    .folder-action-group {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+
+    .folder-children {
+        margin-left: 16px;
+        margin-top: 8px;
+        padding-left: 8px;
+        border-left: 1px solid var(--border, rgba(15, 23, 42, 0.08));
+    }
+
+    .thread-row.active-thread {
+        outline: 2px solid rgba(37, 99, 235, 0.45);
+    }
+
+    .chat-shell {
+        min-height: 78vh;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .chat-topbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 14px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--border, rgba(15, 23, 42, 0.08));
+    }
+
+    .chat-title-wrap h3 {
+        margin: 0;
+        color: var(--heading, #10264d);
+    }
+
+    .chat-title-wrap p {
+        margin: 4px 0 0 0;
+        color: var(--muted, #64748b);
+    }
+
+    .chat-box {
+        flex: 1;
+        overflow-y: auto;
+        padding-right: 4px;
+        min-height: 420px;
+        border: 1px solid var(--border, rgba(15, 23, 42, 0.08));
+        border-radius: 8px;
+        padding: 20px;
+        background: var(--panel-muted, #f8fbff);
+        margin-bottom: 16px;
+    }
+
+    .message-row {
+        display: flex;
+        margin-bottom: 14px;
+    }
+
+    .user-row {
+        justify-content: flex-end;
+    }
+
+    .ai-row {
+        justify-content: flex-start;
+    }
+
+    .message-bubble {
+        max-width: 82%;
+        padding: 14px 16px;
+        border-radius: 8px;
+        box-shadow: 0 6px 20px rgba(15, 23, 42, 0.05);
+    }
+
+    .user-bubble {
+        background: #0f172a;
+        color: white;
+    }
+
+    .ai-bubble {
+        background: white;
+        color: var(--text, #0f172a);
+        border: 1px solid var(--border, rgba(15, 23, 42, 0.08));
+    }
+
+    body.dark-mode .ai-bubble {
+        background: #1f2937;
+        color: #f3f4f6;
+        border-color: #374151;
+    }
+
+    .label {
+        font-size: 0.82rem;
+        opacity: 0.72;
+        margin-bottom: 8px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+    }
+
+    .message-body p {
+        margin-top: 0;
+        margin-bottom: 12px;
+    }
+
+    .message-body ul,
+    .message-body ol {
+        padding-left: 22px;
+        margin: 12px 0 14px;
+    }
+
+    .message-body li {
+        margin-bottom: 8px;
+    }
+
+    .message-body h1,
+    .message-body h2,
+    .message-body h3,
+    .message-body h4 {
+        margin: 14px 0 10px;
+        color: var(--heading, #10264d);
+        line-height: 1.3;
+    }
+
+    .message-body code {
+        background: #eef2f7;
+        padding: 2px 6px;
+        border-radius: 8px;
+        font-size: 13px;
+    }
+
+    body.dark-mode .message-body code {
+        background: #374151;
+    }
+
+    .message-body pre {
+        background: #0f172a;
+        color: #f8fafc;
+        padding: 14px;
+        border-radius: 14px;
+        overflow-x: auto;
+        margin: 12px 0;
+    }
+
+    .message-body blockquote {
+        border-left: 3px solid #cbd5e1;
+        padding-left: 12px;
+        color: #475569;
+        margin: 12px 0;
+    }
+
+    body.dark-mode .message-body blockquote {
+        color: #cbd5e1;
+    }
+
+    .typing-indicator {
+        margin: 10px 0;
+        color: var(--muted, #64748b);
+        font-style: italic;
+    }
+
+    .hidden {
+        display: none;
+    }
+
+    .composer {
+        margin-top: 14px;
+        padding-top: 14px;
+        border-top: 1px solid var(--border, rgba(15, 23, 42, 0.08));
+    }
+
+    .composer textarea,
+    .composer input[type="file"],
+    #memory-query {
+        width: 100%;
+        border-radius: 8px;
+        padding: 12px 14px;
+        border: 1px solid var(--border-strong, rgba(15, 23, 42, 0.14));
+        background: white;
+        color: inherit;
+    }
+
+    body.dark-mode .composer textarea,
+    body.dark-mode .composer input[type="file"],
+    body.dark-mode #memory-query {
+        background: #0f172a;
+        color: #f3f4f6;
+        border-color: #374151;
+    }
+
+    .composer textarea {
+        min-height: 110px;
+        resize: vertical;
+        margin-top: 10px;
+    }
+
+    .composer-actions {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 10px;
+    }
+
+    .memory-result-item {
+        margin-top: 10px;
+        padding: 12px;
+        border: 1px solid var(--border, rgba(15, 23, 42, 0.08));
+        border-radius: 8px;
+        background: var(--panel-muted, #f8fbff);
+    }
+
+    .memory-card-clickable {
+        cursor: pointer;
+    }
+
+    .inline-file-row {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        margin-bottom: 8px;
+    }
+
+    @media (max-width: 980px) {
+        .chat-layout {
+            grid-template-columns: 1fr;
+        }
+
+        .left-panel {
+            position: static;
+            max-height: none;
+        }
+
+        .message-bubble {
+            max-width: 100%;
+        }
+
+        .inline-file-row {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .chat-topbar {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+    }
+</style>
+
+<section class="page-header">
+    <h2>Workspace</h2>
+    <p class="sub">A local space for notes, files, threads, and stored context.</p>
+</section>
+
+<div class="chat-layout">
+    <aside class="left-panel">
+        <h3 class="panel-title">Working Modes</h3>
+
+        <div class="tool-stack">
+            <button type="button" data-tool="summarize">Summarize</button>
+            <button type="button" data-tool="plan">Make a plan</button>
+            <button type="button" data-tool="rewrite">Rewrite clearly</button>
+            <button type="button" data-tool="brainstorm">Explore options</button>
+        </div>
+
+        <div class="fast-mode-box">
+            <label class="fast-toggle">
+                <input type="checkbox" id="fast-mode" checked>
+                <span>Concise mode</span>
+            </label>
+            <p class="muted-text small-text">Shorter responses when you need momentum.</p>
+        </div>
+
+        <div class="folder-section">
+            <h4 style="margin-top:0;">Workspace</h4>
+
+            <div class="folder-controls">
+                <button type="button" id="new-chat-btn">New thread</button>
+                <button type="button" id="new-folder-btn">New folder</button>
+                <button type="button" id="new-subfolder-btn">New subfolder</button>
+            </div>
+
+            <div id="folder-tree" class="tree-block"></div>
+        </div>
+
+        <div class="memory-search">
+            <h4 style="margin-top:0;">Search Memory</h4>
+            <input type="text" id="memory-query" placeholder="Search saved memory">
+            <div id="memory-results" class="memory-results">
+                <p class="muted-text">No recent memory yet.</p>
+            </div>
+        </div>
+    </aside>
+
+    <div class="chat-shell">
+        <div class="chat-topbar">
+            <div class="chat-title-wrap">
+                <h3 id="current-thread-title">New Thread</h3>
+                <p id="current-folder-label">Unfiled</p>
+            </div>
+            <button type="button" id="delete-thread-btn" class="thread-action-btn danger-btn">Move to Trash</button>
+        </div>
+
+        <div id="chat-box" class="chat-box"></div>
+
+        <div id="typing-indicator" class="typing-indicator hidden">
+            Working...
+        </div>
+
+        <div class="composer">
+            <div class="inline-file-row">
+                <input type="file" id="file-input" accept=".pdf,.docx,.txt" style="flex:1;">
+                <button id="analyze-file-btn" type="button">Attach and read</button>
+            </div>
+
+            <textarea id="message" placeholder="Write what you want to work through."></textarea>
+
+            <div class="composer-actions">
+                <button id="send-btn" type="button">Send</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/markdown-it@14.1.0/dist/markdown-it.min.js"></script>
+<script>
+    const chatBox = document.getElementById("chat-box");
+    const typingIndicator = document.getElementById("typing-indicator");
+    const messageBox = document.getElementById("message");
+    const sendBtn = document.getElementById("send-btn");
+    const fastModeBox = document.getElementById("fast-mode");
+    const fileInput = document.getElementById("file-input");
+    const analyzeFileBtn = document.getElementById("analyze-file-btn");
+    const folderTree = document.getElementById("folder-tree");
+    const memoryQuery = document.getElementById("memory-query");
+    const memoryResults = document.getElementById("memory-results");
+    const currentThreadTitleEl = document.getElementById("current-thread-title");
+    const currentFolderLabelEl = document.getElementById("current-folder-label");
+    const deleteThreadBtn = document.getElementById("delete-thread-btn");
+
+    let currentTool = "";
+    let currentThreadId = null;
+    let currentFolderId = null;
+    let selectedFolderName = "Unfiled";
+
+    const md = window.markdownit({
+        html: false,
+        breaks: true,
+        linkify: true
+    });
+
+    function escapeHtml(text) {
+        const div = document.createElement("div");
+        div.textContent = text || "";
+        return div.innerHTML;
+    }
+
+    function cleanMarkdown(text) {
+        let cleaned = text || "";
+        cleaned = cleaned.replace(/\r/g, "");
+        cleaned = cleaned.replace(/^\s*[*]{1,3}\s*$/gm, "");
+        cleaned = cleaned.replace(/^\s*•\s*/gm, "- ");
+        cleaned = cleaned.replace(/\n{3,}/g, "\n\n");
+        return cleaned.trim();
+    }
+
+    function renderAssistantText(text) {
+        return md.render(cleanMarkdown(text));
+    }
+
+    function renderUserText(text) {
+        return escapeHtml(text).replace(/\n/g, "<br>");
+    }
+
+    function addBubble(role, label, html) {
+        const row = document.createElement("div");
+        row.className = `message-row ${role}-row`;
+
+        const bubble = document.createElement("div");
+        bubble.className = `message-bubble ${role}-bubble`;
+
+        const name = document.createElement("div");
+        name.className = "label";
+        name.textContent = label;
+
+        const body = document.createElement("div");
+        body.className = "message-body";
+        body.innerHTML = html;
+
+        bubble.appendChild(name);
+        bubble.appendChild(body);
+        row.appendChild(bubble);
+        chatBox.appendChild(row);
+
+        chatBox.scrollTop = chatBox.scrollHeight;
+        return body;
+    }
+
+    function clearChatBox() {
+        chatBox.innerHTML = "";
+    }
+
+    function updateThreadHeader(title = "New Thread") {
+        currentThreadTitleEl.textContent = title || "New Thread";
+        currentFolderLabelEl.textContent = selectedFolderName || "Unfiled";
+    }
+
+    function setActiveTool(type) {
+        currentTool = type || "";
+        document.querySelectorAll(".tool-stack button").forEach(btn => {
+            btn.classList.remove("active-tool");
+        });
+
+        if (!type) {
+            messageBox.placeholder = "Write what you want to work through.";
+            return;
+        }
+
+        const btn = document.querySelector(`.tool-stack button[data-tool="${type}"]`);
+        if (btn) btn.classList.add("active-tool");
+
+        const placeholders = {
+            summarize: "Paste text or explain what needs a clean summary.",
+            plan: "What do you want a plan for?",
+            rewrite: "Paste what needs a clearer version.",
+            brainstorm: "What options do you want to explore?"
+        };
+
+        messageBox.placeholder = placeholders[type] || "Write what you want to work through.";
+        messageBox.focus();
+    }
+
+    async function sendMessage() {
+        const message = messageBox.value.trim();
+        if (!message) return;
+
+        addBubble("user", "You", renderUserText(message));
+        messageBox.value = "";
+        sendBtn.disabled = true;
+        sendBtn.textContent = "Sending...";
+        typingIndicator.classList.remove("hidden");
+        typingIndicator.innerText = "Working...";
+
+        const aiBody = addBubble("ai", "Ishani OS", "");
+        const fastMode = fastModeBox.checked;
+
+        try {
+            const response = await fetch("/chat", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    message,
+                    fast_mode: fastMode,
+                    tool: currentTool,
+                    thread_id: currentThreadId,
+                    folder_id: currentFolderId
+                })
+            });
+
+            if (!response.ok || !response.body) {
+                aiBody.innerHTML = "<p>Something went wrong. Try again.</p>";
+                return;
+            }
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = "";
+            let fullText = "";
+            let sawToken = false;
+
+            while (true) {
+                const { value, done } = await reader.read();
+                if (done) break;
+
+                buffer += decoder.decode(value, { stream: true });
+                const parts = buffer.split("\n\n");
+                buffer = parts.pop();
+
+                for (const part of parts) {
+                    if (!part.startsWith("data: ")) continue;
+
+                    const raw = part.slice(6);
+
+                    try {
+                        const data = JSON.parse(raw);
+
+                        if (data.thread_id && !currentThreadId) {
+                            currentThreadId = data.thread_id;
+                            if (data.thread_title) {
+                                updateThreadHeader(data.thread_title);
+                            }
+                            loadFolders();
+                        }
+
+                        if (data.token) {
+                            if (!sawToken) {
+                                typingIndicator.innerText = "Writing...";
+                                sawToken = true;
+                            }
+
+                            fullText += data.token;
+                            aiBody.innerHTML = renderAssistantText(fullText);
+                            chatBox.scrollTop = chatBox.scrollHeight;
+                        }
+
+                        if (data.done) {
+                            if (data.thread_id) currentThreadId = data.thread_id;
+                            if (data.thread_title) updateThreadHeader(data.thread_title);
+                            loadFolders();
+                        }
+
+                        if (data.error) {
+                            aiBody.innerHTML = `<p>Something went wrong: ${escapeHtml(data.error)}</p>`;
+                        }
+                    } catch (err) {
+                        aiBody.innerHTML = "<p>Something went wrong while reading the response.</p>";
+                    }
+                }
+            }
+        } catch (error) {
+            aiBody.innerHTML = "<p>Something went wrong. Try again.</p>";
+        } finally {
+            typingIndicator.classList.add("hidden");
+            sendBtn.disabled = false;
+            sendBtn.textContent = "Send";
+            setActiveTool("");
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+    }
+
+    async function uploadAndAnalyzeFile() {
+        const file = fileInput.files[0];
+        const question = messageBox.value.trim();
+
+        if (!file) {
+            alert("Select a file first.");
+            return;
+        }
+
+        addBubble("user", "You", renderUserText(`Attached file: ${file.name}`));
+        typingIndicator.classList.remove("hidden");
+        typingIndicator.innerText = "Reading file...";
+
+        const aiBody = addBubble("ai", "Ishani OS", "");
+
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("question", question);
+        if (currentThreadId) formData.append("thread_id", currentThreadId);
+        if (currentFolderId) formData.append("folder_id", currentFolderId);
+
+        try {
+            const response = await fetch("/analyze-file", {
+                method: "POST",
+                body: formData
+            });
+
+            const data = await response.json();
+            aiBody.innerHTML = renderAssistantText(data.reply || "I could not analyze that file.");
+
+            if (data.thread_id && !currentThreadId) {
+                currentThreadId = data.thread_id;
+            }
+
+            fileInput.value = "";
+            messageBox.value = "";
+            await loadFolders();
+        } catch (error) {
+            aiBody.innerHTML = "<p>File upload failed.</p>";
+        } finally {
+            typingIndicator.classList.add("hidden");
+        }
+    }
+
+    async function loadFolders() {
+        try {
+            const response = await fetch("/folders-data");
+            const data = await response.json();
+            renderFolderTree(data);
+        } catch (error) {
+            folderTree.innerHTML = "<p class='muted-text'>Could not load folders.</p>";
+        }
+    }
+
+    function renderFolderTree(data) {
+        const html = [];
+
+        if (data.unfiled_threads && data.unfiled_threads.length) {
+            html.push(`<div class="unfiled-header"><div class="folder-row"><strong>Unfiled Threads</strong></div></div>`);
+            data.unfiled_threads.forEach(thread => {
+                html.push(renderThreadNode(thread));
+            });
+        }
+
+        if (data.folders && data.folders.length) {
+            data.folders.forEach(folder => {
+                html.push(renderFolderNode(folder));
+            });
+        }
+
+        if (html.length === 0) {
+            folderTree.innerHTML = "<p class='muted-text'>No folders or threads yet.</p>";
+            return;
+        }
+
+        folderTree.innerHTML = html.join("");
+        bindTreeActions();
+    }
+
+  function renderFolderNode(folder) {
+    const folderKey = `folder-open-${folder.id}`;
+    const isOpen = localStorage.getItem(folderKey) !== "false";
+
+    let html = `
+        <div class="folder-node" data-folder-id="${folder.id}" data-folder-name="${escapeHtml(folder.name)}">
+            <div class="folder-row">
+                <div class="folder-main">
+                    <button type="button"
+                            class="folder-toggle-btn"
+                            data-folder-id="${folder.id}"
+                            aria-label="Toggle folder">
+                        ${isOpen ? "v" : ">"}
+                    </button>
+                    <div class="folder-name-wrap">
+                    <div class="folder-icon"></div>
+                    <div class="folder-name">${escapeHtml(folder.name)}</div>
+                    </div>
+                </div>
+
+                <div class="folder-action-group">
+                    <button type="button" class="thread-action-btn select-folder-btn" data-folder-id="${folder.id}" data-folder-name="${escapeHtml(folder.name)}">Use</button>
+                    <button type="button" class="thread-action-btn rename-folder-btn" data-folder-id="${folder.id}" data-folder-name="${escapeHtml(folder.name)}">Rename</button>
+                    <button type="button" class="thread-action-btn delete-folder-btn danger-btn" data-folder-id="${folder.id}">Move to Trash</button>
+                </div>
+            </div>
+    `;
+
+    const hasChildren = (folder.children && folder.children.length) || (folder.threads && folder.threads.length);
+
+    if (hasChildren) {
+        html += `<div class="folder-children ${isOpen ? "" : "collapsed-folder"}" data-folder-children="${folder.id}">`;
+
+        if (folder.threads && folder.threads.length) {
+            folder.threads.forEach(thread => {
+                html += renderThreadNode(thread);
+            });
+        }
+
+        if (folder.children && folder.children.length) {
+            folder.children.forEach(child => {
+                html += renderFolderNode(child);
+            });
+        }
+
+        html += `</div>`;
+    }
+
+    html += `</div>`;
+    return html;
+    }
+
+    function renderThreadNode(thread) {
+    const activeClass = Number(currentThreadId) === Number(thread.id) ? "active-thread" : "";
+    return `
+        <div class="thread-node">
+            <div class="thread-row ${activeClass}">
+                <div class="thread-main">
+                    <div class="thread-icon"></div>
+                    <div class="thread-title open-thread-btn" data-thread-id="${thread.id}">
+                        ${escapeHtml(thread.title)}
+                    </div>
+                </div>
+                <button type="button" class="thread-action-btn delete-thread-inline-btn danger-btn" data-thread-id="${thread.id}">Move to Trash</button>
+            </div>
+        </div>
+    `;
+    }
+
+    function bindTreeActions() {
+    document.querySelectorAll(".folder-toggle-btn").forEach(btn => {
+        btn.addEventListener("click", (event) => {
+            event.stopPropagation();
+
+            const folderId = btn.dataset.folderId;
+            const target = document.querySelector(`[data-folder-children="${folderId}"]`);
+            if (!target) return;
+
+            const isCollapsed = target.classList.toggle("collapsed-folder");
+            btn.textContent = isCollapsed ? ">" : "v";
+
+            localStorage.setItem(`folder-open-${folderId}`, isCollapsed ? "false" : "true");
+        });
+    });
+
+    document.querySelectorAll(".open-thread-btn").forEach(btn => {
+        btn.addEventListener("click", async () => {
+            const threadId = btn.dataset.threadId;
+            await openThread(threadId);
+        });
+    });
+
+    document.querySelectorAll(".delete-thread-inline-btn").forEach(btn => {
+        btn.addEventListener("click", async (event) => {
+            event.stopPropagation();
+            const threadId = btn.dataset.threadId;
+            await deleteThread(threadId);
+        });
+    });
+
+    document.querySelectorAll(".select-folder-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+            currentFolderId = btn.dataset.folderId;
+            selectedFolderName = btn.dataset.folderName || "Folder";
+            updateThreadHeader(currentThreadTitleEl.textContent);
+        });
+    });
+
+    document.querySelectorAll(".rename-folder-btn").forEach(btn => {
+        btn.addEventListener("click", async (event) => {
+            event.stopPropagation();
+
+            const folderId = btn.dataset.folderId;
+            const currentName = btn.dataset.folderName || "";
+            const newName = window.prompt("Rename folder:", currentName);
+
+            if (!newName || !newName.trim()) return;
+
+            try {
+                const response = await fetch(`/rename-folder/${folderId}`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ name: newName.trim() })
+                });
+
+                const data = await response.json();
+
+                if (!data.success) {
+                    alert(data.error || "Could not rename folder.");
+                    return;
+                }
+
+                if (String(currentFolderId) === String(folderId)) {
+                    selectedFolderName = newName.trim();
+                    updateThreadHeader(currentThreadTitleEl.textContent);
+                }
+
+                await loadFolders();
+            } catch (error) {
+                alert("Rename failed.");
+            }
+        });
+    });
+
+    document.querySelectorAll(".delete-folder-btn").forEach(btn => {
+        btn.addEventListener("click", async (event) => {
+            event.stopPropagation();
+
+            const folderId = btn.dataset.folderId;
+            const confirmed = window.confirm("Move this folder to Trash? Threads inside it will become unfiled.");
+
+            if (!confirmed) return;
+
+            try {
+                const response = await fetch(`/delete-folder/${folderId}`, {
+                    method: "POST"
+                });
+
+                const data = await response.json();
+
+                if (!data.success) {
+                    alert(data.error || "Could not move folder to Trash.");
+                    return;
+                }
+
+                if (String(currentFolderId) === String(folderId)) {
+                    currentFolderId = null;
+                    selectedFolderName = "Unfiled";
+                    updateThreadHeader(currentThreadTitleEl.textContent);
+                }
+
+                await loadFolders();
+            } catch (error) {
+                alert("Move to Trash failed.");
+            }
+        });
+    });
+    }
+    async function openThread(threadId) {
+        try {
+            const response = await fetch(`/thread/${threadId}`);
+            const data = await response.json();
+
+            if (!data.success) {
+                alert("Could not open that thread.");
+                return;
+            }
+
+            currentThreadId = data.thread.id;
+            currentFolderId = data.thread.folder_id || null;
+
+            if (!currentFolderId) {
+                selectedFolderName = "Unfiled";
+            }
+
+            clearChatBox();
+
+            data.messages.forEach(msg => {
+                if (msg.role === "user") {
+                    addBubble("user", "You", renderUserText(msg.content));
+                } else {
+                    addBubble("ai", "Ishani OS", renderAssistantText(msg.content));
+                }
+            });
+
+            updateThreadHeader(data.thread.title || "Thread");
+            await loadFolders();
+        } catch (error) {
+            alert("Failed to load that thread.");
+        }
+    }
+
+    async function deleteThread(threadId = null) {
+        const targetId = threadId || currentThreadId;
+
+        if (!targetId) {
+            alert("No thread selected yet.");
+            return;
+        }
+
+        const confirmed = window.confirm("Move this thread to Trash?");
+        if (!confirmed) return;
+
+        try {
+            const response = await fetch(`/delete-thread/${targetId}`, {
+                method: "POST"
+            });
+            const data = await response.json();
+
+            if (data.success) {
+                if (Number(currentThreadId) === Number(targetId)) {
+                    currentThreadId = null;
+                    clearChatBox();
+                    updateThreadHeader("New Thread");
+                }
+                await loadFolders();
+            }
+        } catch (error) {
+            alert("Move to Trash failed.");
+        }
+    }
+
+    async function createFolder(parentId = null) {
+        const label = parentId ? "New subfolder name:" : "New folder name:";
+        const name = window.prompt(label);
+
+        if (!name || !name.trim()) return;
+
+        try {
+            const response = await fetch("/create-folder", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    name: name.trim(),
+                    parent_id: parentId
+                })
+            });
+
+            const data = await response.json();
+
+            if (!data.success) {
+                alert(data.error || "Could not create folder.");
+                return;
+            }
+
+            await loadFolders();
+        } catch (error) {
+            alert("Folder creation failed.");
+        }
+    }
+
+    async function createNewChat() {
+        currentThreadId = null;
+        clearChatBox();
+        updateThreadHeader("New Thread");
+        messageBox.focus();
+        await loadFolders();
+    }
+
+    async function searchMemory() {
+        const query = memoryQuery.value.trim();
+
+        try {
+            const response = await fetch("/search-memory", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ query })
+            });
+
+            const data = await response.json();
+
+            if (!data.results || data.results.length === 0) {
+                memoryResults.innerHTML = query
+                    ? "<p class='muted-text'>No memory matches found.</p>"
+                    : "<p class='muted-text'>No recent memory yet.</p>";
+                return;
+            }
+
+            let html = "";
+
+            data.results.forEach(item => {
+                const safeType = escapeHtml(item.type);
+                const safeTitle = escapeHtml(item.title);
+                const safePreview = escapeHtml(item.preview);
+                const encodedContent = encodeURIComponent(item.full_content || "");
+                const threadIdAttr = item.thread_id ? `data-thread-id="${item.thread_id}"` : "";
+
+                html += `
+                    <div class="memory-result-item">
+                        <div class="memory-card-clickable open-memory-result" data-type="${safeType}" ${threadIdAttr} data-content="${encodedContent}">
+                            <strong>${safeTitle}</strong>
+                            <div style="margin-top:6px;">${safePreview}</div>
+                        </div>
+                        <div style="margin-top:10px;">
+                            <button type="button" class="delete-memory-btn danger-btn" data-id="${item.id}" data-type="${safeType}">Move to Trash</button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            memoryResults.innerHTML = html;
+
+            document.querySelectorAll(".open-memory-result").forEach(el => {
+                el.addEventListener("click", async () => {
+                    const type = el.dataset.type;
+                    const content = decodeURIComponent(el.dataset.content || "");
+                    const threadId = el.dataset.threadId;
+
+                    if (type === "chat" && threadId) {
+                        await openThread(threadId);
+                    } else {
+                        openMemoryResult(type, content);
+                    }
+                });
+            });
+
+            document.querySelectorAll(".delete-memory-btn").forEach(btn => {
+                btn.addEventListener("click", async (event) => {
+                    event.stopPropagation();
+                    await deleteMemoryResult(btn.dataset.id, btn.dataset.type);
+                });
+            });
+
+        } catch (error) {
+            memoryResults.innerHTML = "<p class='muted-text'>Search failed.</p>";
+            console.error(error);
+        }
+    }
+
+    function openMemoryResult(type, fullContent) {
+        if (!fullContent) return;
+
+        if (type === "chat") {
+            addBubble("ai", "Past Thread", renderAssistantText(fullContent));
+        } else {
+            addBubble("ai", "Saved Memory", renderAssistantText(fullContent));
+        }
+    }
+
+    async function deleteMemoryResult(id, type) {
+        try {
+            const response = await fetch(`/delete-chat-memory/${type}/${id}`, {
+                method: "POST"
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                searchMemory();
+            }
+        } catch (error) {
+            console.error("Move to Trash failed:", error);
+        }
+    }
+
+    document.querySelectorAll(".tool-stack button").forEach(btn => {
+        btn.addEventListener("click", () => {
+            const tool = btn.dataset.tool;
+            setActiveTool(tool);
+
+            if (messageBox.value.trim()) {
+                sendMessage();
+            }
+        });
+    });
+
+    sendBtn.addEventListener("click", sendMessage);
+    analyzeFileBtn.addEventListener("click", uploadAndAnalyzeFile);
+    deleteThreadBtn.addEventListener("click", () => deleteThread());
+    document.getElementById("new-chat-btn").addEventListener("click", createNewChat);
+    document.getElementById("new-folder-btn").addEventListener("click", () => createFolder(null));
+    document.getElementById("new-subfolder-btn").addEventListener("click", () => {
+        if (!currentFolderId) {
+            alert("Select a folder first by clicking Use next to a folder.");
+            return;
+        }
+        createFolder(currentFolderId);
+    });
+
+    messageBox.addEventListener("keydown", function(event) {
+        if (event.key === "Enter" && !event.shiftKey) {
+            event.preventDefault();
+            sendMessage();
+        }
+    });
+
+    memoryQuery.addEventListener("input", searchMemory);
+    memoryQuery.addEventListener("focus", searchMemory);
+
+    updateThreadHeader("New Thread");
+    loadFolders();
+    searchMemory();
+</script>
+{% endblock %}
+
+
