@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, jsonify, R
 import sqlite3
 import json
 import tempfile
+import re
 from datetime import datetime
 from pathlib import Path
 from ollama import Client
@@ -576,6 +577,239 @@ def delete_reflection(reflection_id):
     return redirect(url_for("pattern_check"))
 
 
+DECISION_PRIORITY_WEIGHTS = {
+    "stability": {
+        "stable": 3,
+        "stability": 3,
+        "stabilize": 3,
+        "stabilizing": 3,
+        "reliable": 3,
+        "reliability": 3,
+        "secure": 2,
+        "security": 2,
+        "consistent": 2,
+        "consistency": 2,
+        "foundation": 2,
+        "prepare": 2,
+        "prepared": 2,
+        "ready": 2,
+        "quality": 2,
+        "polish": 1,
+        "polished": 1,
+        "maintain": 2,
+        "maintenance": 2,
+    },
+    "growth": {
+        "grow": 3,
+        "growth": 3,
+        "expand": 3,
+        "improve": 2,
+        "improvement": 2,
+        "build": 2,
+        "building": 2,
+        "feature": 2,
+        "features": 2,
+        "opportunity": 3,
+        "learn": 2,
+        "learning": 2,
+        "advance": 2,
+        "advancement": 2,
+        "progress": 2,
+        "develop": 2,
+        "development": 2,
+    },
+    "balance": {
+        "balance": 3,
+        "balanced": 3,
+        "stress": 3,
+        "stressed": 3,
+        "stressful": 3,
+        "overwhelmed": 3,
+        "overload": 3,
+        "burnout": 3,
+        "time": 1,
+        "manageable": 2,
+        "bandwidth": 3,
+        "capacity": 3,
+        "sustain": 2,
+        "sustainable": 2,
+        "energy": 2,
+        "pressure": 2,
+    },
+    "timing": {
+        "timing": 3,
+        "deadline": 3,
+        "urgent": 3,
+        "urgency": 3,
+        "soon": 2,
+        "wait": 2,
+        "later": 2,
+        "now": 2,
+        "schedule": 2,
+        "scheduled": 2,
+        "sequence": 2,
+        "sequencing": 2,
+        "due": 3,
+        "first": 2,
+        "next": 1,
+    },
+}
+
+DECISION_TIE_BREAK_ORDER = {
+    "timing": 0,
+    "balance": 1,
+    "stability": 2,
+    "growth": 3,
+}
+
+DECISION_RECOMMENDATIONS = {
+    "stability": "This looks like a stability decision. Focus on the option that makes the system more reliable, prepared, and easier to maintain.",
+    "growth": "This looks like a growth decision. Focus on the option that creates learning, progress, or a stronger future opportunity.",
+    "balance": "This looks like a balance decision. Focus on what protects your time, energy, and capacity.",
+    "timing": "This looks like a timing decision. Focus on urgency, deadlines, sequence, and what needs to happen first.",
+    "needs more context": "This decision needs a little more context. Add what matters most right now: stability, growth, balance, or timing.",
+}
+
+
+def normalize_decision_text(text):
+    return re.sub(r"\s+", " ", (text or "").lower()).strip()
+
+
+def combine_decision_form_text(form):
+    fields = [
+        "user_input",
+        "decision_title",
+        "title",
+        "options",
+        "notes",
+        "tradeoffs",
+        "priority",
+        "description",
+    ]
+    parts = []
+    for field in fields:
+        value = (form.get(field) or "").strip()
+        if value:
+            parts.append(value)
+    return " ".join(parts)
+
+
+def tokenize_decision_text(text):
+    return re.findall(r"\b[a-z0-9']+\b", normalize_decision_text(text))
+
+
+def score_decision_priorities(text):
+    tokens = tokenize_decision_text(text)
+    token_set = set(tokens)
+    scores = {category: 0 for category in DECISION_PRIORITY_WEIGHTS}
+    matched_signals = {category: [] for category in DECISION_PRIORITY_WEIGHTS}
+    balance_signals_without_time = set(DECISION_PRIORITY_WEIGHTS["balance"]) - {"time"}
+    has_balance_context = bool(token_set & balance_signals_without_time)
+
+    for token in tokens:
+        for category, weights in DECISION_PRIORITY_WEIGHTS.items():
+            if token not in weights or token in matched_signals[category]:
+                continue
+            if category == "balance" and token == "time" and not has_balance_context:
+                continue
+
+            scores[category] += weights[token]
+            matched_signals[category].append(token)
+
+    return scores, matched_signals
+
+
+def classify_decision_priority(text):
+    scores, matched_signals = score_decision_priorities(text)
+    total_score = sum(scores.values())
+
+    if total_score == 0:
+        return {
+            "primary": "needs more context",
+            "secondary": None,
+            "confidence": "Needs more context",
+            "scores": scores,
+            "matched_signals": matched_signals,
+        }
+
+    ordered_priorities = sorted(
+        scores,
+        key=lambda category: (-scores[category], DECISION_TIE_BREAK_ORDER[category])
+    )
+    primary = ordered_priorities[0]
+    primary_score = scores[primary]
+    secondary = None
+
+    for category in ordered_priorities[1:]:
+        secondary_score = scores[category]
+        if secondary_score >= 2 and secondary_score >= primary_score * 0.3:
+            secondary = category
+            break
+
+    confidence_ratio = primary_score / total_score
+    if confidence_ratio >= 0.70:
+        confidence = "High confidence"
+    elif confidence_ratio >= 0.45:
+        confidence = "Medium confidence"
+    else:
+        confidence = "Low confidence"
+
+    return {
+        "primary": primary,
+        "secondary": secondary,
+        "confidence": confidence,
+        "scores": scores,
+        "matched_signals": matched_signals,
+    }
+
+
+def format_priority_label(priority):
+    return priority.title() if priority != "needs more context" else "Needs more context"
+
+
+def format_detected_signals(analysis):
+    primary = analysis["primary"]
+    secondary = analysis["secondary"]
+
+    if primary == "needs more context":
+        return DECISION_RECOMMENDATIONS[primary]
+
+    if secondary:
+        primary_signals = ", ".join(analysis["matched_signals"][primary])
+        secondary_signals = ", ".join(analysis["matched_signals"][secondary])
+        return (
+            f"Detected signals: {format_priority_label(primary)}: {primary_signals}; "
+            f"{format_priority_label(secondary)}: {secondary_signals}."
+        )
+
+    signals = ", ".join(analysis["matched_signals"][primary])
+    return f"Detected signals: {signals}."
+
+
+def build_decision_recommendation(analysis):
+    primary = analysis["primary"]
+    secondary = analysis["secondary"]
+
+    if primary == "needs more context":
+        return (
+            "Primary priority: Needs more context. "
+            "Confidence: Needs more context. "
+            f"Recommendation: {DECISION_RECOMMENDATIONS[primary]}"
+        )
+
+    parts = [
+        f"Primary priority: {format_priority_label(primary)}.",
+    ]
+    if secondary:
+        parts.append(f"Secondary priority: {format_priority_label(secondary)}.")
+    parts.extend([
+        f"Confidence: {analysis['confidence']}.",
+        format_detected_signals(analysis),
+        f"Recommendation: {DECISION_RECOMMENDATIONS[primary]}",
+    ])
+    return " ".join(parts)
+
+
 @app.route("/decision", methods=["GET", "POST"])
 def decision():
     result = None
@@ -584,14 +818,9 @@ def decision():
 
     if request.method == "POST":
         user_input = request.form["user_input"].strip()
-        text = user_input.lower()
-        priority = "unclear"
-        if any(word in text for word in ["safe", "stable", "security", "consistent"]):
-            priority = "stability"
-        elif any(word in text for word in ["grow", "growth", "opportunity", "learn", "advance"]):
-            priority = "growth"
-        elif any(word in text for word in ["balance", "stress", "time", "manageable", "peace"]):
-            priority = "balance"
+        decision_text = combine_decision_form_text(request.form)
+        analysis = classify_decision_priority(decision_text)
+        priority = format_priority_label(analysis["primary"])
 
         questions = [
             "What choice supports your real priority right now?",
@@ -601,14 +830,7 @@ def decision():
             "What choice can you actually live with six months from now?"
         ]
 
-        if priority == "stability":
-            recommendation = "Stability is the strongest signal here. Favor the option that reduces avoidable uncertainty and protects your baseline."
-        elif priority == "growth":
-            recommendation = "Growth is the strongest signal here. Favor the option that stretches you without ignoring the cost."
-        elif priority == "balance":
-            recommendation = "Balance is the strongest signal here. Favor the option you can sustain without borrowing from your stability."
-        else:
-            recommendation = "This sounds layered. Slow the decision down and separate the real constraints from the pressure around them."
+        recommendation = build_decision_recommendation(analysis)
 
         result = {"priority": priority, "questions": questions, "recommendation": recommendation}
         conn.execute("""
