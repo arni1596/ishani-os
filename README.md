@@ -1,77 +1,50 @@
 # Ishani OS
 
-Ishani OS is a local-first personal operating system for self-management, reflection, memory tracking, decision support, and weekly review.
+Ishani OS is a local-first Flask and SQLite app for tracking tasks, decisions, patterns, memories, weekly reviews, and personal workflows in one place.
 
 ## Product Overview
 
-Ishani OS is designed as a private command center for clarity, stability, and follow-through. It is not a generic journal app or a chatbot-first product. The app helps a user capture useful context, notice repeating patterns, work through decisions, review the week, and safely recover deleted items through a Trash and Restore system.
+Ishani OS gives me one local workspace for information that would normally be split across notes, task lists, reminders, and conversations.
 
-The project is built as a full-stack Flask application with SQLite persistence, Jinja templates, HTML, CSS, and JavaScript. It runs locally and keeps the user's data on their machine.
+The app is built with Flask, SQLite, Jinja templates, HTML, CSS, and JavaScript. It runs locally and stores data on the user's machine.
+
+This project is not meant to be a generic journal app or a chatbot. I built it as a structured Flask project with real database-backed workflows, saved history, and recoverable deleted records.
 
 ## Why I Built It
 
-I built Ishani OS to explore how software can support reflection and self-management without relying on hype-driven productivity language or sending personal context to a remote service by default.
+I built Ishani OS because I wanted a private system for tracking what needs attention, saving useful context, working through decisions, and reviewing the week without depending on a cloud-based tool.
 
-The goal was to create a calm, practical workspace where a person can:
-
-- See active priorities clearly.
-- Save memories and reference notes locally.
-- Slow down recurring thoughts and identify patterns.
-- Make decisions based on real priorities.
-- Review the week in a structured way.
-- Move items out of active view without permanently losing them.
+I also wanted to practice full-stack development through a project that behaves like a real app: multiple routes, persistent data, editable records, soft delete, restore behavior, and a clear interface.
 
 ## Current Features
 
-### Command Center
+### Dashboard
 
-- Add, edit, prioritize, and update task status.
-- See a suggested next useful move based on active tasks.
-- Move tasks to Trash instead of permanently deleting them.
+The Dashboard shows active tasks and the next useful move. Tasks can be added, edited, updated by priority and status, and moved to Trash.
 
 ### Pattern Check
 
-- Save reflection entries with emotion, pattern, need, reality check, and next step fields.
-- Review recent pattern checks.
-- Move reflections to Trash and restore them later.
+Pattern Check saves reflection entries that break down a thought or situation into a pattern, need, reality check, and next step. Deleted reflections can be restored from Trash.
 
 ### Memory Vault
 
-- Save local text memories with a title and content.
-- Upload `.txt` files into memory.
-- Rename saved memories.
-- Search saved memories from the workspace.
-- Move memories to Trash and restore them later.
+Memory Vault stores notes, project context, reminders, and reference material. Saved memories can be renamed, moved to Trash, and restored.
 
 ### Decision Guide
 
-- Enter a decision and receive a priority signal such as stability, growth, balance, or unclear.
-- Save decision history.
-- Review previous decisions.
-- Move decision records to Trash and restore them later.
+Decision Guide helps work through a decision by identifying whether the decision is mainly about stability, growth, balance, or timing. Decision history is saved so past decisions can be reviewed later.
 
 ### Weekly Review
 
-- Generate a weekly review from active tasks and saved reflections.
-- Save weekly review snapshots.
-- Review saved weekly history.
-- Move weekly reviews to Trash and restore them later.
+Weekly Review pulls together wins, lessons, and next steps for the week. Reviews can be saved and moved to Trash when they are no longer needed.
 
-### Workspace
+### Reset Mode
 
-- Create threads and folders.
-- Rename and move threads.
-- Store conversation history locally in SQLite.
-- Search saved memories and recent workspace messages.
-- Upload and read `.txt`, `.pdf`, and `.docx` files.
-- Optional local Ollama integration through a locally running model.
+Reset Mode is a simple page for slowing down and choosing the next step when things feel scattered.
 
 ### Trash and Restore
 
-- Soft-delete system using `deleted_at` timestamps.
-- Deleted items are hidden from regular pages.
-- Trash groups deleted items by module.
-- Restore removes `deleted_at` and returns items to active views.
+Ishani OS uses soft delete behavior instead of permanently removing records right away. Deleted tasks, memories, reflections, decisions, reviews, folders, and workspace threads can be restored from Trash.
 
 ## Tech Stack
 
@@ -83,15 +56,47 @@ The goal was to create a calm, practical workspace where a person can:
 - CSS
 - JavaScript
 - Optional local Ollama integration
-- `pdfplumber` for PDF text extraction
-- `python-docx` for DOCX text extraction
+
+## Screenshots
+
+### Dashboard
+![Dashboard](assets/screenshots/command-center.png)
+
+### Pattern Check
+![Pattern Check](assets/screenshots/pattern-check.png)
+
+### Memory Vault
+![Memory Vault](assets/screenshots/memory-vault.png)
+
+### Decision Guide
+![Decision Guide](assets/screenshots/decision-guide.png)
+
+### Weekly Review
+![Weekly Review](assets/screenshots/weekly-review.png)
+
+### Trash and Restore
+![Trash and Restore](assets/screenshots/trash-restore.png)
+
+## Demo Flow
+
+A simple demo flow for the app:
+
+1. Add a few tasks on the Dashboard.
+2. Save a Pattern Check entry using safe sample text.
+3. Add a Memory Vault note.
+4. Work through a decision in Decision Guide.
+5. Save a Weekly Review.
+6. Move one or two records to Trash.
+7. Restore them from the Trash page.
+
+This flow shows the main CRUD behavior, saved history, and soft-delete system.
 
 ## Installation
 
 Clone the repository:
 
-```bash
-git clone https://github.com/YOUR-USERNAME/ishani-os.git
+```powershell
+git clone https://github.com/arni1596/ishani-os.git
 cd ishani-os
 ```
 
@@ -99,7 +104,7 @@ Create and activate a virtual environment:
 
 ```powershell
 python -m venv venv
-venv\Scripts\activate
+.\venv\Scripts\activate
 ```
 
 Install dependencies:
@@ -108,136 +113,90 @@ Install dependencies:
 pip install -r requirements.txt
 ```
 
-## How To Run Locally
-
-Start the Flask app:
+Run the app:
 
 ```powershell
 python app.py
 ```
 
-Open the local app:
+Open the app in your browser:
 
 ```text
 http://127.0.0.1:5000
 ```
 
-The app creates or migrates the local SQLite database on startup. Existing tables are preserved, and missing columns are added safely.
-
-## Example Workflows
-
-### Add and Restore a Task
-
-1. Open Command Center.
-2. Add a task such as `Finish portfolio README`.
-3. Set the priority to `High`.
-4. Move the task to Trash.
-5. Open Trash and restore it.
-
-### Save a Memory
-
-1. Open Memory Vault.
-2. Add a title such as `Internship notes`.
-3. Paste useful context into the content field.
-4. Rename the memory later if the title becomes unclear.
-
-### Run a Pattern Check
-
-1. Open Pattern Check.
-2. Write what actually happened and what your mind may be adding.
-3. Save the reflection.
-4. Review recent entries to notice repeating patterns.
-
-### Work Through a Decision
-
-1. Open Decision Guide.
-2. Describe the decision and what you are protecting.
-3. Review the priority signal and recommendation.
-4. Save the decision to history.
-
-### Save a Weekly Review
-
-1. Open Weekly Review.
-2. Review wins, lessons, and next-week priorities.
-3. Save the weekly review snapshot.
-4. Restore it from Trash if it is moved out of active view by mistake.
-
 ## Project Structure
 
 ```text
 ishani-os/
-├── app.py
-├── requirements.txt
-├── README.md
-├── LICENSE
-├── static/
-│   ├── script.js
-│   └── style.css
-├── templates/
-│   ├── base.html
-│   ├── dashboard.html
-│   ├── memory.html
-│   ├── pattern.html
-│   ├── decision.html
-│   ├── review.html
-│   ├── reset.html
-│   ├── chat.html
-│   └── trash.html
-└── assets/
-    └── screenshots/
-        └── README.md
+|-- app.py
+|-- requirements.txt
+|-- README.md
+|-- LICENSE
+|-- templates/
+|   |-- base.html
+|   |-- dashboard.html
+|   |-- memory.html
+|   |-- pattern.html
+|   |-- decision.html
+|   |-- review.html
+|   |-- reset.html
+|   |-- chat.html
+|   `-- trash.html
+|-- static/
+|   |-- style.css
+|   `-- script.js
+`-- assets/
+    `-- screenshots/
 ```
 
-Local runtime files such as `database.db`, `uploads/`, `venv/`, `.env`, and private screenshots should not be committed.
+## Database and Privacy Note
 
-## Screenshots
+Ishani OS uses SQLite to store data locally on your machine. When the app runs, it creates a local database file for tasks, memories, reflections, decisions, reviews, and deleted items.
 
-Screenshots are not included yet. Suggested screenshots to add:
+Because the app can contain personal notes and uploaded files, local data files should not be committed to GitHub. The `.gitignore` excludes files such as:
 
-- Command Center
-- Memory Vault
-- Pattern Check
-- Decision Guide
-- Weekly Review
-- Trash and Restore
+- database.db
+- uploads/
+- .env
+- venv/
+- __pycache__/
 
-Place public, non-private screenshots in:
+The app also includes optional local Ollama support for workspace responses. If used, Ollama runs on the user's machine through `http://localhost:11434`. This is optional and is not required for the main dashboard, memory, decision, review, or trash workflows.
 
-```text
-assets/screenshots/
-```
+## What I Learned
 
-See [assets/screenshots/README.md](assets/screenshots/README.md) for placeholder notes.
+This project helped me practice building a small but complete Flask application with database-backed workflows.
 
-## Privacy and Local-First Note
+I worked on:
 
-Ishani OS is designed to run locally with SQLite. Personal data, uploaded files, and the local database should stay on the user's machine and should not be committed to GitHub.
-
-If using the optional Ollama workflow, model responses are generated through a local Ollama server configured at:
-
-```text
-http://localhost:11434
-```
+- Designing routes for multiple connected features.
+- Creating reusable Jinja templates.
+- Storing and updating records with SQLite.
+- Adding soft-delete and restore behavior with `deleted_at` timestamps.
+- Improving UI wording so the app feels clear instead of cluttered.
+- Preparing a project for GitHub with screenshots, a README, a license, and a clean `.gitignore`.
 
 ## Future Improvements
 
-- Add authentication for multi-user or deployed environments.
-- Add export options for memories, reviews, and decisions.
-- Add richer folder management for memories.
-- Add permanent delete as a clearly separate action from Trash.
-- Add automated tests for routes, migrations, and restore behavior.
-- Add screenshot documentation and a short demo video.
-- Make the optional local model integration configurable from settings.
+Future improvements I would like to add:
 
-## Resume-Ready Highlights
+- Better folder organization for saved memories and workspace threads.
+- Search and filtering across saved entries.
+- A cleaner empty-state design for each page.
+- More detailed weekly review trends over time.
+- Optional local model support through Ollama.
+- Export options for saved reviews or memories.
+- More automated tests for routes and database behavior.
 
-- Built a full-stack Flask and SQLite application with persistent CRUD workflows across tasks, memories, reflections, decisions, weekly reviews, folders, and workspace threads.
-- Implemented a soft-delete and restore system using `deleted_at` timestamps to protect user data from accidental permanent deletion.
-- Designed a local-first, privacy-conscious product architecture for personal reflection and self-management.
-- Created modular Jinja templates and a polished dark command-center interface with grounded UX writing.
-- Added file-reading workflows for TXT, PDF, and DOCX content.
-- Structured the app as a portfolio-ready project with clear feature boundaries and practical product thinking.
+## Technical Highlights
+
+- Built a Flask and SQLite application with database-backed workflows for tasks, memories, reflections, decisions, and weekly reviews.
+- Added soft-delete and restore behavior with `deleted_at` timestamps so records can be recovered instead of permanently removed right away.
+- Used Jinja templates to keep the interface modular across the main feature areas.
+- Designed a local-first structure where the database and uploaded files stay on the user's machine and are excluded from GitHub.
+- Organized the app around clear feature areas: Dashboard, Pattern Check, Memory Vault, Decision Guide, Weekly Review, Reset Mode, and Trash.
 
 ## License
 
-This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+This project is licensed under the MIT License.
